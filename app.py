@@ -6,9 +6,9 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 
-st.set_page_config(page_title="IMDb Movies India Rating Prediction", page_icon="🎬")
+st.set_page_config(page_title="Movie Rating Prediction with Python", page_icon="🎬")
 
-st.title("IMDb Movies India Rating Prediction 🎬")
+st.title("Movie Rating Prediction with Python 🎬")
 
 # Load the dataset
 def load_data():
