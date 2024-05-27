@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import numpy as np
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 st.set_page_config(page_title="Movie Rating Prediction with Python", page_icon="🎬")
 
@@ -21,80 +19,68 @@ df = load_data()
 st.header("IMDb Movies India Dataset")
 st.write(df)
 
-# Select features and target variable
-@st.cache
-def preprocess_data(df):
-    # Trim the number of unique values for encoding
-    top_directors = df['Director'].value_counts().index[:10]
-    top_actors = df['Actor 1'].value_counts().index[:10]
+def main():
+    d = pd.read_csv('imdb_top_1000.csv')
+    d = d[np.isfinite(pd.to_numeric(d.Released_Year, errors="coerce"))]
+    d = d[['Released_Year', 'Runtime', 'Genre', 'Director', 'Star1', 'Star2', 'Star3', 'Star4', 'IMDB_Rating']]
+    d["Runtime"] = d.Runtime.replace({'min': ''}, regex=True)
+
+    df = d.copy()
+
+    # Get dropdown values
+    df = df.dropna()
+    genres = df.Genre.replace({', ': ','}, regex=True)
+    genres = genres.str.split(',').explode('Genre')
+    genres = np.unique(genres)
+    director = np.sort(df["Director"].unique())
+
+    stars = pd.Series(pd.concat([df['Star1'], df['Star2'], df['Star3'], df['Star4']]).unique())
+    stars = np.sort(stars)
+
+    runtime = 0
+    star1 = star2 = star3 = star4 = ''
     
-    df['Director'] = df['Director'].where(df['Director'].isin(top_directors), 'Other')
-    df['Actor 1'] = df['Actor 1'].where(df['Actor 1'].isin(top_actors), 'Other')
-    df['Actor 2'] = df['Actor 2'].where(df['Actor 2'].isin(top_actors), 'Other')
-    df['Actor 3'] = df['Actor 3'].where(df['Actor 3'].isin(top_actors), 'Other')
+    st.header("User Input Features")
     
-    features = ['Year', 'Genre', 'Votes', 'Director', 'Actor 1', 'Actor 2', 'Actor 3']
-    target = 'Rating'
-    
-    X = df[features]
-    y = df[target]
-    
-    return X, y
+    release_selection = st.number_input("Select the Release Year", step=1, min_value=1920, max_value=2050)
+    runtime_selection = st.number_input("Enter the Duration (in minutes)", runtime)
+    genre_selection = st.multiselect("Select the Genres", genres, placeholder="eg Action, Adventure")
+    director_selection = st.selectbox("Select the Director", director)
+    star_selection = st.multiselect("Select the top 4 Stars of the Film:", stars, placeholder="Select no more than 4 Stars")
 
-X, y = preprocess_data(df)
-X, y = preprocess_data(df)
-X['Year'] = X['Year'].astype(str).str.extract('(\d{4})').astype(float)
-X['Votes'] = pd.to_numeric(X['Votes'], errors='coerce')
+    if st.button("Predict"):
+        if len(star_selection) >= 1:
+            star1 = star_selection[0]
+        if len(star_selection) >= 2:
+            star2 = star_selection[1]
+        if len(star_selection) >= 3:
+            star3 = star_selection[2]
+        if len(star_selection) >= 4:
+            star4 = star_selection[3]
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        genre_input = ' '.join(genre_selection)
 
-# Define the preprocessing and model pipeline
-categorical_features = ['Genre', 'Director', 'Actor 1', 'Actor 2', 'Actor 3']
-numeric_features = ['Year', 'Votes']
+        prediction_data = [release_selection, runtime_selection, genre_input, director_selection, star1, star2, star3, star4, np.nan]
+        prediction_df = pd.DataFrame([prediction_data], columns=d.columns)
+        d = pd.concat([d, prediction_df])
 
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', 'passthrough', numeric_features),
-        ('cat', OneHotEncoder(sparse_output=False, handle_unknown='ignore'), categorical_features)  # Changed line
-    ])
+        for col in ['Genre', 'Director', 'Star1', 'Star2', 'Star3', 'Star4']:
+            d[col] = d[col].astype('category').cat.codes
 
-model = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('regressor', LinearRegression())
-])
+        prediction_data = d.iloc[-1].drop('IMDB_Rating').values.reshape(1, -1)
+        d = d.drop(d.index[-1])
 
-# Fit the model
-model.fit(X_train, y_train)
+        training_columns = ['Released_Year', 'Runtime', 'Genre', 'Director', 'Star1', 'Star2', 'Star3', 'Star4']
+        x, y = d[training_columns], d['IMDB_Rating']
+        sc = StandardScaler()
+        x = sc.fit_transform(x)
+        prediction_data = sc.transform(prediction_data)
 
-# User input features
-st.header("User Input Features")
+        model = LinearRegression()
+        model.fit(x, y)
+        predictions = model.predict(prediction_data)
 
-# Options
-def user_input_features():
-    year = st.slider('Year', int(df.Year.min()), int(df.Year.max()), int(df.Year.mean()))
-    genre = st.selectbox('Genre', options=df['Genre'].unique())
-    votes = st.slider('Votes', int(df.Votes.min()), int(df.Votes.max()), int(df.Votes.mean()))
-    director = st.selectbox('Director', options=df['Director'].unique())
-    actor_1 = st.selectbox('Actor 1', options=df['Actor 1'].unique())
-    actor_2 = st.selectbox('Actor 2', options=df['Actor 2'].unique())
-    actor_3 = st.selectbox('Actor 3', options=df['Actor 3'].unique())
-    return {
-        'Year': year,
-        'Genre': genre,
-        'Votes': votes,
-        'Director': director,
-        'Actor 1': actor_1,
-        'Actor 2': actor_2,
-        'Actor 3': actor_3
-    }
+        st.success(f"Predicted IMDB Rating: {predictions.round(2)[0]}")
 
-input_df = pd.DataFrame(user_input_features(), index=[0])
-input_df['Year'] = input_df['Year'].fillna(input_df['Year'].median()).astype(int)  # Handle missing values and convert
-input_df['Votes'] = input_df['Votes'].fillna(input_df['Votes'].median()).astype(int)  # Handle missing values and convert
-
-# Prediction
-if st.button("Predict"):
-    prediction = model.predict(input_df)
-    st.subheader('Prediction')
-    st.write(f"Predicted Rating: **{prediction[0]:.2f}**")
+if __name__ == "__main__":
+    main()
