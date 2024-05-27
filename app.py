@@ -53,7 +53,7 @@ numeric_features = ['Year', 'Votes']
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', 'passthrough', numeric_features),
-        ('cat', OneHotEncoder((sparse_output=False)), categorical_features)
+        ('cat', OneHotEncoder(sparse_output=False), categorical_features)
     ])
 
 model = Pipeline(steps=[
