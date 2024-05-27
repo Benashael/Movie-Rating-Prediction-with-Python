@@ -44,9 +44,9 @@ def main():
     
     release_selection = st.number_input("Select the Release Year", step=1, min_value=1920, max_value=2050)
     runtime_selection = st.number_input("Enter the Duration (in minutes)", runtime)
-    genre_selection = st.multiselect("Select the Genres", genres, placeholder="eg Action, Adventure")
+    genre_selection = st.multiselect("Select the Genres", genres)
     director_selection = st.selectbox("Select the Director", director)
-    star_selection = st.multiselect("Select the top 4 Stars of the Film:", stars, placeholder="Select no more than 4 Stars")
+    star_selection = st.multiselect("Select the top 4 Stars of the Film:", stars, placeholder="Select no more than 4 Stars for better Prediction")
 
     if st.button("Predict"):
         if len(star_selection) >= 1:
@@ -80,7 +80,7 @@ def main():
         model.fit(x, y)
         predictions = model.predict(prediction_data)
 
-        st.success(f"Predicted IMDB Rating: {predictions.round(2)[0]}")
+        st.write(f"Predicted IMDB Rating: **{predictions.round(2)[0]}**")
 
 if __name__ == "__main__":
     main()
