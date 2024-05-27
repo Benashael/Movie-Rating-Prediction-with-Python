@@ -42,6 +42,8 @@ def preprocess_data(df):
     return X, y
 
 X, y = preprocess_data(df)
+X['Year'] = X['Year'].astype(int)
+X['Votes'] = X['Votes'].astype(int)
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -53,7 +55,7 @@ numeric_features = ['Year', 'Votes']
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', 'passthrough', numeric_features),
-        ('cat', OneHotEncoder(sparse_output=False), categorical_features)
+        ('cat', OneHotEncoder(sparse_output=False, handle_unknown='ignore'), categorical_features)  # Changed line
     ])
 
 model = Pipeline(steps=[
@@ -87,6 +89,8 @@ def user_input_features():
     }
 
 input_df = pd.DataFrame(user_input_features(), index=[0])
+input_df['Year'] = input_df['Year'].astype(int)
+input_df['Votes'] = input_df['Votes'].astype(int)
 
 # Prediction
 if st.button("Predict"):
