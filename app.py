@@ -42,8 +42,9 @@ def preprocess_data(df):
     return X, y
 
 X, y = preprocess_data(df)
-X['Year'] = X['Year'].astype(int)
-X['Votes'] = X['Votes'].astype(int)
+X, y = preprocess_data(df)
+X['Year'] = X['Year'].fillna(X['Year'].median()).astype(int)  # Handle missing values and convert
+X['Votes'] = X['Votes'].fillna(X['Votes'].median()).astype(int)  # Handle missing values and convert
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -89,12 +90,11 @@ def user_input_features():
     }
 
 input_df = pd.DataFrame(user_input_features(), index=[0])
-input_df['Year'] = input_df['Year'].astype(int)
-input_df['Votes'] = input_df['Votes'].astype(int)
+input_df['Year'] = input_df['Year'].fillna(input_df['Year'].median()).astype(int)  # Handle missing values and convert
+input_df['Votes'] = input_df['Votes'].fillna(input_df['Votes'].median()).astype(int)  # Handle missing values and convert
 
 # Prediction
 if st.button("Predict"):
     prediction = model.predict(input_df)
     st.subheader('Prediction')
     st.write(f"Predicted Rating: **{prediction[0]:.2f}**")
-
