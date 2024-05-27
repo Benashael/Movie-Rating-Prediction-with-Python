@@ -12,7 +12,7 @@ st.title("IMDb Movies India Rating Prediction 🎬")
 
 # Load the dataset
 def load_data():
-    df = pd.read_csv('IMDb-Movies-India.csv')
+    df = pd.read_csv('IMDb-Movies-India.csv', encoding='latin1')
     return df
 
 df = load_data()
